@@ -38,7 +38,7 @@ public class Utils {
 	
 		BufferedWriter bf = null;
 		try {
-			bf = new BufferedWriter(new FileWriter(targetFileName,true));
+			bf = new BufferedWriter(new FileWriter(targetFileName, false));
 			bf.write("StudentID, TotalNumberOfSemestersRegistered, Semester, NumCoursesTakenInTheSemester");
 			bf.newLine();
 			for(String l : lines) {
