@@ -67,14 +67,14 @@ public class HGUCoursePatternAnalyzer {
 	}
 	
 	//-a 2 count
-	private ArrayList<String> countNumberOfStudentsTakeSuchCourse(Map<String, Student> Students,String CourseCode,String startYear,String endYear){
+	private ArrayList<String> countNumberOfStudentsTakeSuchCourse(Map<String, Student> sortedStudents,String CourseCode,String startYear,String endYear){
 		Map<String, Integer> NumOfStuTake= new TreeMap<String, Integer>();
 		Map<String, Integer> NumOfStuEnrolled = new TreeMap<String, Integer>();
 		ArrayList<String> linesToBeSaved = new ArrayList<String>();
 		
 		//take courseName 	
 		String courseName = null;
-		for(Student stu : Students.values()) {
+		for(Student stu : sortedStudents.values()) {
 			if(!stu.courseName(CourseCode).contentEquals("NotFound")) {
 				courseName = stu.courseName(CourseCode);
 				break;
@@ -82,16 +82,20 @@ public class HGUCoursePatternAnalyzer {
 		}
 		
 		//from students, make Map<year_seme, number of students take the course>
-		for(Student stu : Students.values()) {
-			String year_seme = stu.whenCourseTaken(CourseCode);
-			if(year_seme!=null&&!NumOfStuTake.containsKey(year_seme))
-				NumOfStuTake.put(year_seme,1);
-			else if(year_seme!=null) 
-				NumOfStuTake.replace(year_seme, NumOfStuTake.get(year_seme)+1);
+		for(Student stu : sortedStudents.values()) {
+			ArrayList<String> year_seme = stu.whenCourseTaken(CourseCode);
+			if(!year_seme.isEmpty()) {
+				for(int i=0; i<year_seme.size();i++) {
+					if(!NumOfStuTake.containsKey(year_seme.get(i)))
+						NumOfStuTake.put(year_seme.get(i),1);
+					else
+						NumOfStuTake.replace(year_seme.get(i), NumOfStuTake.get(year_seme.get(i))+1);
+				}
+			}
 		}
 		
 		//from students, make Map<year_seme, number of students enrolled>
-		for(Student stu : Students.values()) {
+		for(Student stu : sortedStudents.values()) {
 			for(String year_seme : NumOfStuTake.keySet()) {
 				if(stu.isEnrolled(year_seme)) {
 					if(!NumOfStuEnrolled.containsKey(year_seme))
@@ -120,7 +124,7 @@ public class HGUCoursePatternAnalyzer {
 	//revise Map by start-end years
 	private Map<String, Integer> getRevisedMapByStartEndYear(Map<String, Integer> ObjectiveMap, String startYear, String endYear) {
 		int start = Integer.parseInt(startYear+"1");
-		int end = Integer.parseInt(endYear+"2");
+		int end = Integer.parseInt(endYear+"4");
 		Iterator<String> iter = ObjectiveMap.keySet().iterator();
 		while (iter.hasNext()) {
 			String key = iter.next();

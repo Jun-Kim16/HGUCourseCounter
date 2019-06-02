@@ -119,7 +119,7 @@ public class Utils {
 		BufferedWriter bf = null;
 		try {
 			bf = new BufferedWriter(new FileWriter(targetFileName, false));
-			bf.write("Year,Semester,CouseCode, CourseName,TotalStudents,StudentsTaken,Rate");
+			bf.write("Year,Semester,CourseCode, CourseName,TotalStudents,StudentsTaken,Rate");
 			bf.newLine();
 			for (String l : lines) {
 				bf.write(l);

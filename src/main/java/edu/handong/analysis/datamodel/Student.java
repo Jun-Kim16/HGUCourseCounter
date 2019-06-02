@@ -1,6 +1,7 @@
 package edu.handong.analysis.datamodel;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.TreeMap;
 
 public class Student {
@@ -50,13 +51,14 @@ public class Student {
 		return numOfCourse;
 	}
 	
-	public String whenCourseTaken(String CourseCode) {
+	public ArrayList<String> whenCourseTaken(String CourseCode) {
+		ArrayList<String> when = new ArrayList<String>();
 		for(Course course : coursesTaken) {
 			if(course.getCourseCode().contentEquals(CourseCode)) {
-				return course.getYearTaken()+ "_" + course.getSemesterCourseTaken();
+				when.add(course.getYearTaken()+ "_" + course.getSemesterCourseTaken());
 			}
 		}
-		return null;
+		return when;
 	}
 	
 	public String courseName(String CourseCode) {

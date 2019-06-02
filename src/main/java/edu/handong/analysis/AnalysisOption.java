@@ -113,7 +113,7 @@ public class AnalysisOption {
 	public void printHelp(Options options) {
 		// automatically generate the help statement
 		HelpFormatter formatter = new HelpFormatter();
-		String header = "HGUCoursePattern Analysis Program";
+		String header = "HGU Course Analyzer";
 		String footer ="";
 		formatter.printHelp("HGUCourseCounter", header, options, footer, true);
 	}
