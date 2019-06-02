@@ -1,104 +1,134 @@
 package edu.handong.analysis;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import edu.handong.analysis.datamodel.Course;
+import org.apache.commons.cli.Options;
+
 import edu.handong.analysis.datamodel.Student;
-import edu.handong.analysis.utils.NotEnoughArgumentException;
 import edu.handong.analysis.utils.Utils;
 
 public class HGUCoursePatternAnalyzer {
-	public static void main(String[] args) {
-		//appropriately use instances such as Courses and Students
-	}
-	
-	private HashMap<String,Student> students;
-	
-	/**
-	 * This method runs our analysis logic to save the number courses taken by each student per semester in a result file.
-	 * Run method must not be changed!!
-	 * @param args
-	 * @throws FileNotFoundException 
-	 */
+	//run
 	public void run(String[] args) {
+		AnalysisOption analysisOpt = new AnalysisOption();
+		Options options = analysisOpt.createOptions();
+
 		
-		try {
-			// when there are not enough arguments from CLI, it throws the NotEnoughArgmentException which must be defined by you.
-			if(args.length<2)
-				throw new NotEnoughArgumentException();
-			if(!new File(args[0]).exists()) 
-				throw new NotEnoughArgumentException("The file path does not exist. Please check your CLI argument!");
+		if(analysisOpt.parseOptions(options, args)){
+			String start = analysisOpt.getStartYear();
+			String end = analysisOpt.getEndYear();
 			
-		} catch (NotEnoughArgumentException e) {
-			System.out.println(e.getMessage());
-			System.exit(0);
-		}
-		
-		String dataPath = args[0]; // csv file to be analyzed
-		String resultPath = args[1]; // the file path where the results are saved.
-		ArrayList<String> lines = Utils.getLines(dataPath, true);
-		
-		students = loadStudentCourseRecords(lines);
-		
-		// To sort HashMap entries by key values so that we can save the results by student ids in ascending order.
-		Map<String, Student> sortedStudents = new TreeMap<String,Student>(students); 
-		
-		// Generate result lines to be saved.
-		ArrayList<String> linesToBeSaved = countNumberOfCoursesTakenInEachSemester(sortedStudents);
-		
-		// Write a file (named like the value of resultPath) with linesTobeSaved.
-		Utils.writeAFile(linesToBeSaved, resultPath);
-	}
-	
-	/**
-	 * This method create HashMap<String,Student> from the data csv file. Key is a student id and the corresponding object is an instance of Student.
-	 * The Student instance have all the Course instances taken by the student.
-	 * @param lines
-	 * @return
-	 */
-	private HashMap<String,Student> loadStudentCourseRecords(ArrayList<String> lines) {
-		HashMap<String,Student> students = new HashMap();
-		String studentId;
-		Student stu;
-		for(int i=0;i<lines.size();i++) {
-			studentId=lines.get(i).split(",")[0].trim().replace(",", "");
-			if(!students.containsKey(studentId)) {
-				stu = new Student(studentId);	
-				stu.addCourse(new Course(lines.get(i)));
-				students.put(studentId, stu);
-			}else {
-				students.get(studentId).addCourse(new Course(lines.get(i)));
+			if (analysisOpt.isHelp()){
+				analysisOpt.printHelp(options);
+				return;
+			}
+			//read
+			Map<String, Student> sortedStudents = Utils.getStudents(analysisOpt.getInputPath(), true);
+			
+			if(analysisOpt.getAnalysistype().contentEquals("1")) {
+				//count
+				ArrayList<String> linesToBeSaved1 = countNumberOfCoursesTakenInEachSemester(sortedStudents, start, end);
+				//write
+				Utils.writeAFile1(linesToBeSaved1, analysisOpt.getOutputPath());
+			}
+			if(analysisOpt.getAnalysistype().contentEquals("2")) {
+				String CourseCode = analysisOpt.getCourseCode();
+				//count
+				ArrayList<String> linesToBeSaved2 = countNumberOfStudentsTakeSuchCourse(sortedStudents, CourseCode, start, end);
+				//write
+				Utils.writeAFile2(linesToBeSaved2, analysisOpt.getOutputPath());
 			}
 		}
-		return students;
 	}
 
-	/**
-	 * This method generate the number of courses taken by a student in each semester. The result file look like this:
-	 * StudentID, TotalNumberOfSemestersRegistered, Semester, NumCoursesTakenInTheSemester
-	 * 0001,14,1,9
-     * 0001,14,2,8
-	 * ....
-	 * 
-	 * 0001,14,1,9 => this means, 0001 student registered 14 semeters in total. In the first semeter (1), the student took 9 courses.
-	 * 
-	 * 
-	 * @param sortedStudents
-	 * @return
-	 */
-	private ArrayList<String> countNumberOfCoursesTakenInEachSemester(Map<String, Student> sortedStudents) {
+	//-a 1 count
+	private ArrayList<String> countNumberOfCoursesTakenInEachSemester(Map<String, Student> sortedStudents, String startYear, String endYear) {
 		ArrayList<String> numOfCourses = new ArrayList<String>();
-		for(String stukey : sortedStudents.keySet()) { //학생들 돌리기
-			int totalSem = sortedStudents.get(stukey).getSemesterByYearAndSemester().size();
-			for(int i = 1; i <= totalSem; i++) {
-				numOfCourses.add(stukey+","+totalSem+","+Integer.toString(i)+","+Integer.toString(sortedStudents.get(stukey).getNumCourseInNthSemester(i)));
+		for(String stukey : sortedStudents.keySet()) {
+			Student stu = sortedStudents.get(stukey);
+			Map<String, Integer> numOfSemesterForYear_Seme = stu.getSemesterByYearAndSemester();
+			int totalSemester = numOfSemesterForYear_Seme.size();
+			
+			Map<String, Integer> revisedMapByStartEndYear = getRevisedMapByStartEndYear(numOfSemesterForYear_Seme,startYear,endYear);
+		
+			for(String key : revisedMapByStartEndYear.keySet()) {
+				int i = revisedMapByStartEndYear.get(key);
+				numOfCourses.add(stukey+","
+								+totalSemester+","
+								+Integer.toString(i)+","
+								+Integer.toString(stu.getNumCourseInNthSemester(i)));
 			}
 		}
 		return numOfCourses;
+	}
+	
+	//-a 2 count
+	private ArrayList<String> countNumberOfStudentsTakeSuchCourse(Map<String, Student> Students,String CourseCode,String startYear,String endYear){
+		Map<String, Integer> NumOfStuTake= new TreeMap<String, Integer>();
+		Map<String, Integer> NumOfStuEnrolled = new TreeMap<String, Integer>();
+		ArrayList<String> linesToBeSaved = new ArrayList<String>();
+		
+		//take courseName 	
+		String courseName = null;
+		for(Student stu : Students.values()) {
+			if(!stu.courseName(CourseCode).contentEquals("NotFound")) {
+				courseName = stu.courseName(CourseCode);
+				break;
+			}
+		}
+		
+		//from students, make Map<year_seme, number of students take the course>
+		for(Student stu : Students.values()) {
+			String year_seme = stu.whenCourseTaken(CourseCode);
+			if(year_seme!=null&&!NumOfStuTake.containsKey(year_seme))
+				NumOfStuTake.put(year_seme,1);
+			else if(year_seme!=null) 
+				NumOfStuTake.replace(year_seme, NumOfStuTake.get(year_seme)+1);
+		}
+		
+		//from students, make Map<year_seme, number of students enrolled>
+		for(Student stu : Students.values()) {
+			for(String year_seme : NumOfStuTake.keySet()) {
+				if(stu.isEnrolled(year_seme)) {
+					if(!NumOfStuEnrolled.containsKey(year_seme))
+						NumOfStuEnrolled.put(year_seme, 1);
+					else NumOfStuEnrolled.replace(year_seme, NumOfStuEnrolled.get(year_seme)+1);
+				}
+			}
+		}
+		//get revised Map 
+		NumOfStuTake = getRevisedMapByStartEndYear(NumOfStuTake, startYear, endYear);
+		NumOfStuEnrolled = getRevisedMapByStartEndYear(NumOfStuEnrolled, startYear, endYear);
+		
+		//make writing material
+		for(String year_seme : NumOfStuTake.keySet()) {
+			String year = year_seme.split("_")[0];
+			String seme = year_seme.split("_")[1];
+			String total = Integer.toString(NumOfStuEnrolled.get(year_seme));
+			String taken = Integer.toString(NumOfStuTake.get(year_seme));
+			String rate = String.format("%.1f",(NumOfStuTake.get(year_seme)*100 /(float)NumOfStuEnrolled.get(year_seme)));
+		linesToBeSaved.add(year+","+seme+","+CourseCode+","+courseName+","+total+","+taken+","+rate+"%");
+		}
+	
+		return linesToBeSaved;
+	}
+	
+	//revise Map by start-end years
+	private Map<String, Integer> getRevisedMapByStartEndYear(Map<String, Integer> ObjectiveMap, String startYear, String endYear) {
+		int start = Integer.parseInt(startYear+"1");
+		int end = Integer.parseInt(endYear+"2");
+		Iterator<String> iter = ObjectiveMap.keySet().iterator();
+		while (iter.hasNext()) {
+			String key = iter.next();
+			int intKey = Integer.parseInt(key.split("_")[0]+key.split("_")[1]);
+			if(!(start <= intKey && intKey <= end))
+				iter.remove();
+			}
+		
+		return ObjectiveMap;
 	}
 }

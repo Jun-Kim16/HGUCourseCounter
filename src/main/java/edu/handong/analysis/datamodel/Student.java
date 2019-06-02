@@ -1,14 +1,14 @@
 package edu.handong.analysis.datamodel;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.TreeMap;
 
 public class Student {
 	private String studentId;
-	private ArrayList<Course> coursesTaken = new ArrayList<Course>();
-	private HashMap<String,Integer> semestersByYearAndSemester = new HashMap<String,Integer>();
-		
 	
+	private ArrayList<Course> coursesTaken = new ArrayList<Course>();
+	private TreeMap<String,Integer> semestersByYearAndSemester = new TreeMap<String,Integer>();
+		
 	public Student(String studentId){
 		this.studentId = studentId;
 	}
@@ -16,42 +16,67 @@ public class Student {
 	public void addCourse(Course newRecord) {
 		coursesTaken.add(newRecord);
 	}
-	/*2018-1, 2 이런식으로 학생별로 쭉 넣어서 만듬*/
-	public HashMap<String, Integer> getSemesterByYearAndSemester(){
+	
+	// return HashMap <year-semester(key), number of semester(value)
+	public TreeMap<String, Integer> getSemesterByYearAndSemester(){
 		int numOfSemester = 1;
-		/*String year = Integer.toString(coursesTaken.get(0).getYearTaken());
-		String seme = Integer.toString(coursesTaken.get(0).getSemesterCourseTaken());
-		semestersByYearAndSemester.put(year+"-"+seme, numOfSemester);
-		numOfSemester++;*/
-		
-		for(int i=0; i< coursesTaken.size();i++) {
-			String year = Integer.toString(coursesTaken.get(i).getYearTaken());
-			String seme = Integer.toString(coursesTaken.get(i).getSemesterCourseTaken());
-			if(!semestersByYearAndSemester.containsKey(year+"-"+seme)) {
-				semestersByYearAndSemester.put(year+"-"+seme, numOfSemester);
+		for(Course course : coursesTaken) {
+			String year = course.getYearTaken();
+			String seme = course.getSemesterCourseTaken();
+			if(!semestersByYearAndSemester.containsKey(year+"_"+seme)) {
+				semestersByYearAndSemester.put(year+"_"+seme, numOfSemester);
 				numOfSemester++;
 			}
 		}
 		return semestersByYearAndSemester;
 	}
 	
+
+	
+	// return number of courses in Nth Semester.
 	public int getNumCourseInNthSemester(int semester) {
-		
-		int numCourse = 0;
-		for(String a : semestersByYearAndSemester.keySet()) {
-			if(semestersByYearAndSemester.get(a).equals(semester)) {
-				String yearseme=a;
-				int year = Integer.parseInt(yearseme.split("-")[0]);
-				int seme = Integer.parseInt(yearseme.split("-")[1]);
-				
-				for(int i=0; i< coursesTaken.size();i++) {
-					if(coursesTaken.get(i).getYearTaken()==year && coursesTaken.get(i).getSemesterCourseTaken()==seme)
-						numCourse++;
+		int numOfCourse = 0;
+		for(String yearseme : semestersByYearAndSemester.keySet()) {
+			if(semestersByYearAndSemester.get(yearseme).equals(semester)) {
+				String year = yearseme.split("_")[0];
+				String seme = yearseme.split("_")[1];
+				for(Course course : coursesTaken) {
+					if(course.getYearTaken().contentEquals(year) && 
+						course.getSemesterCourseTaken().contentEquals(seme))
+						numOfCourse++;
+				}
 			}
 		}
-		
-		
-		}
-		return numCourse;
+		return numOfCourse;
 	}
+	
+	public String whenCourseTaken(String CourseCode) {
+		for(Course course : coursesTaken) {
+			if(course.getCourseCode().contentEquals(CourseCode)) {
+				return course.getYearTaken()+ "_" + course.getSemesterCourseTaken();
+			}
+		}
+		return null;
+	}
+	
+	public String courseName(String CourseCode) {
+		for(Course course : coursesTaken) {
+			if(course.getCourseCode().contentEquals(CourseCode)) {
+				return course.getCourseName();
+			}
+		}
+		return "NotFound";
+	}
+	
+	public boolean isEnrolled(String year_seme) {
+		for(Course course : coursesTaken) {
+			if(course.getYearTaken().contentEquals(year_seme.split("_")[0]) &&
+					course.getSemesterCourseTaken().contentEquals(year_seme.split("_")[1]))
+				return true;
+		}
+		return false;
+	}
+	
+
+	
 }
